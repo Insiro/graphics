@@ -1,0 +1,219 @@
+<html>
+    <body>
+        <label>zNear</label>
+        .01<input id="zNear" type="range" min=".01" , max="3" step=".01" value="0.3" />3<br />
+        <label>zFar</label>
+        3<input id="zFar" type="range" min="3" , max="10" step=".3" value="3" />10<br />
+        <label>radius</label>
+        0.05<input id="radius" type="range" min="0.05" max="10" step="0.01" value="3" />2<br />
+        <label>theta</label>
+        -90 <input id="theta" type="range" min="-90" max="90" step="1" value="0" />90<br />
+        <label>phi</label>
+        -90<input id="phi" type="range" max="90" min="-90" step="1" value="0" />90<br />
+        <label>fov</label>
+        10<input id="fov" type="range" min="10" max="120" step="5" value="45" />120<br />
+        <label>aspect</label>
+        0.5<input id="aspect" type="range" min="0.5" max="2" step=".1" value="1" />2<br />
+        <canvas width="500px" height="500px" id="canvas"></canvas>
+    </body>
+    <script src="../Common/MV.js"></script>
+    <script src="../Common/geometry.js"></script>
+    <script src="../Common/InitShaders.js"></script>
+    <script src="../Common/webgl-utils.js"></script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 vPosition;
+        attribute vec4 vColor;
+        varying vec4 fColor;
+        uniform mat4 modelView;
+        uniform mat4 projection;
+
+        void main(){
+            mat4 sxyz = mat4( 0.5, 0.0,  0.0, 0.0,
+          0.0,  0.5, 0.0, 0.0,
+          0.0, 0.0, 0.5, 0.0,
+          0.0,  0.0, 0.0, 1.0 );
+            gl_Position = sxyz*projection*modelView*vPosition;
+            fColor = vColor;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        #ifdef GL_ES
+        precision highp float;
+        #endif
+        varying vec4 fColor;
+
+        void
+        main()
+        {
+            gl_FragColor = fColor;
+        }
+    </script>
+    <script>
+        let near = 0.3;
+        let far = 3.0;
+        let radius = 4.0;
+        let theta = 0.0;
+        let phi = 0.0;
+        let dr = (5.0 * Math.PI) / 180;
+        let fovy = 45.0;
+        let aspect = 1.0;
+
+        let modelViewLoc;
+        let projectionLoc;
+        let gl;
+        var points = [];
+        var colors = [];
+        const at = vec3(0, 0, 0);
+        const up = vec3(0, 1, 0);
+        document.getElementById("zNear").onchange = (event) => (near = event.target.value);
+        document.getElementById("zFar").onchange = (event) => (far = event.target.value);
+        document.getElementById("radius").onchange = (event) => (radius = event.target.value);
+        document.getElementById("theta").onchange = (event) => (theta = (event.target.value * Math.PI) / 180);
+        document.getElementById("aspect").onchange = (event) => (aspect = event.target.value);
+        document.getElementById("phi").onchange = (event) => (phi = (event.target.value * Math.PI) / 180.0);
+        document.getElementById("fov").onchange = (event) => (fovy = event.target.value);
+
+        function colorCube() {
+            quad(1, 0, 3, 2); // blue ( +z ), frontal
+            //    quad( 2, 3, 7, 6 ); // yellow ( +x ), right
+            //    quad( 3, 0, 4, 7 ); // green ( -y ), bottom
+            quad(6, 5, 1, 2); // cyan ( +y ), top
+            quad(4, 5, 6, 7); // red ( -z ), back
+            quad(5, 4, 0, 1); // magenta ( -x ) left
+
+            // bottom
+            quad(8 + 1, 8 + 0, 8 + 3, 8 + 2); // blue ( +z ), frontal
+            quad(8 + 2, 8 + 3, 8 + 7, 8 + 6); // yellow ( +x ), right
+            quad(8 + 3, 8 + 0, 8 + 4, 8 + 7); // green ( -y ), bottom
+            //    quad( 8+6, 8+5, 8+1, 8+2 ); // cyan ( +y ), top
+            quad(8 + 4, 8 + 5, 8 + 6, 8 + 7); // red ( -z ), back
+            quad(8 + 5, 8 + 4, 8 + 0, 8 + 1); // magenta ( -x ) left
+
+            quad(16 + 1, 16 + 0, 16 + 3, 16 + 2); // blue ( +z ), frontal
+            quad(16 + 2, 16 + 3, 16 + 7, 16 + 6); // yellow ( +x ), right
+            quad(16 + 3, 16 + 0, 16 + 4, 16 + 7); // green ( -y ), bottom
+            quad(16 + 6, 16 + 5, 16 + 1, 16 + 2); // cyan ( +y ), top
+            quad(16 + 4, 16 + 5, 16 + 6, 16 + 7); // red ( -z ), back
+            //    quad( 16+5, 16+4, 16+0, 16+1 ); // magenta ( -x ) left
+        }
+
+        function quad(a, b, c, d) {
+            var vertices = [
+                vec4(-0.5, -0.5, 0.5, 1.0), // 0
+                vec4(-0.5, 0.5, 0.5, 1.0), // 1
+                vec4(0.5, 0.5, 0.5, 1.0), // 2
+                vec4(0.5, -0.5, 0.5, 1.0), // 3
+                vec4(-0.5, -0.5, -0.5, 1.0), // 4
+                vec4(-0.5, 0.5, -0.5, 1.0), // 5
+                vec4(0.5, 0.5, -0.5, 1.0), // 6
+                vec4(0.5, -0.5, -0.5, 1.0), // 7
+
+                // bottom
+                vec4(-0.5, -0.5 - 1.0, 0.5, 1.0), // 0
+                vec4(-0.5, 0.5 - 1.0, 0.5, 1.0), // 1
+                vec4(0.5, 0.5 - 1.0, 0.5, 1.0), // 2
+                vec4(0.5, -0.5 - 1.0, 0.5, 1.0), // 3
+                vec4(-0.5, -0.5 - 1.0, -0.5, 1.0), // 4
+                vec4(-0.5, 0.5 - 1.0, -0.5, 1.0), // 5
+                vec4(0.5, 0.5 - 1.0, -0.5, 1.0), // 6
+                vec4(0.5, -0.5 - 1.0, -0.5, 1.0), // 7
+
+                // right
+                vec4(-0.5 + 1.0, -0.5, 0.5, 1.0), // 0
+                vec4(-0.5 + 1.0, 0.5, 0.5, 1.0), // 1
+                vec4(0.5 + 1.0, 0.5, 0.5, 1.0), // 2
+                vec4(0.5 + 1.0, -0.5, 0.5, 1.0), // 3
+                vec4(-0.5 + 1.0, -0.5, -0.5, 1.0), // 4
+                vec4(-0.5 + 1.0, 0.5, -0.5, 1.0), // 5
+                vec4(0.5 + 1.0, 0.5, -0.5, 1.0), // 6
+                vec4(0.5 + 1.0, -0.5, -0.5, 1.0), // 7
+            ];
+            var vertexColors = [
+                [0.0, 0.0, 0.0, 1.0], // black
+                [1.0, 0.0, 0.0, 1.0], // red
+                [1.0, 1.0, 0.0, 1.0], // yellow
+                [0.0, 1.0, 0.0, 1.0], // green
+                [0.0, 0.0, 1.0, 1.0], // blue
+                [1.0, 0.0, 1.0, 1.0], // magenta
+                [0.0, 1.0, 1.0, 1.0], // cyan
+                [1.0, 1.0, 1.0, 1.0], // white
+            ];
+
+            // We need to parition the quad into two triangles in order for
+            // WebGL to be able to render it.  In this case, we create two
+            // triangles from the quad indices
+
+            //vertex color assigned by the index of the vertex
+
+            var indices = [a, b, c, a, c, d]; // 1 0 3, 1 3 2 // 4 5 6, 4 6 7
+
+            for (var i = 0; i < indices.length; ++i) {
+                points.push(vertices[indices[i]]);
+                //colors.push( vertexColors[indices[i]] );
+
+                // for solid colored faces use
+                colors.push(vertexColors[a % 8]);
+            }
+        }
+
+        window.onload = () => {
+            let canvas = document.getElementById("canvas");
+            gl = WebGLUtils.setupWebGL(canvas);
+            if (!gl) {
+                alert("gl not inited");
+                return;
+            }
+            aspect = canvas.width / canvas.height;
+            document.getElementById("aspect").value = aspect;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(1, 1, 1, 1);
+            gl.enable(gl.DEPTH_TEST);
+            gl.enable(gl.CULL_FACE);
+
+            let program = initShaders(gl, "vertex-shader", "fragment-shader");
+            gl.useProgram(program);
+
+            colorCube();
+            glWork(canvas, program);
+        };
+
+        /**
+         * @param gl {WebGLRenderingContext}
+         * @param canvas {HTMLElement}
+         *
+         */
+        let glWork = (canvas, program) => {
+            modelViewLoc = gl.getUniformLocation(program, "modelView");
+            projectionLoc = gl.getUniformLocation(program, "projection");
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+
+            let vColor = gl.getAttribLocation(program, "vColor");
+            gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(vColor);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+
+            let vPosition = gl.getAttribLocation(program, "vPosition");
+            gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(vPosition);
+
+            render();
+        };
+
+        let render = () => {
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            eye = vec3(radius * Math.cos(theta) * Math.sin(phi), radius * Math.sin(theta), radius * Math.cos(theta) * Math.cos(phi)); // eye point
+
+            mvMatrix = lookAt(eye, at, up);
+            projection = perspective(fovy, aspect, near, far);
+            console.log(projection);
+            gl.uniformMatrix4fv(modelViewLoc, false, flatten(mvMatrix));
+            gl.uniformMatrix4fv(projectionLoc, false, flatten(projection));
+            gl.drawArrays(gl.TRIANGLES, 0, points.length);
+            requestAnimFrame(render);
+        };
+    </script>
+</html>

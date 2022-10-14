@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script id="vertex-shader" type="x-shader/x-vertex">
+            attribute vec4 vPosition;
+            uniform vec4 vMove;
+            varying float ypos;
+
+            void
+            main()
+            {
+                gl_Position = vPosition+vMove;
+                ypos = (gl_Position[1] + 0.7)*2.;
+            }
+        </script>
+
+        <script id="fragment-shader" type="x-shader/x-fragment">
+            precision mediump float;
+            varying float ypos;
+            void
+            main()
+            {
+                gl_FragColor = vec4(1,1,1,1 );
+                if ( ypos<.0 ) {
+                    gl_FragColor[0] +=ypos ;
+                    gl_FragColor[1] +=ypos ;
+                    gl_FragColor[2] +=ypos ;
+                }
+            }
+        </script>
+
+        <script type="text/javascript" src="../Common/webgl-utils.js"></script>
+        <script type="text/javascript" src="../Common/InitShaders.js"></script>
+        <script type="text/javascript" src="../Common/MV.js"></script>
+        <script type="text/javascript" src="../Common/geometry.js"></script>
+        <script type="text/javascript" src="assignment2.js"></script>
+    </head>
+
+    <body>
+        <canvas id="gl-canvas" width="512" height="512"> Oops ... your browser doesn't support the HTML5 canvas element </canvas>
+
+        <br />
+        <button id="wind_direction">change wind_direction</button>
+        <button id="reset_snow">reset snow</button>
+    </body>
+</html>

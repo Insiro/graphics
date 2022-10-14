@@ -1,0 +1,99 @@
+<html>
+    <head>
+        <script src="../Common/webgl-utils.js"></script>
+        <script src="../Common/InitShaders.js"></script>
+        <script src="../Common/MV.js"></script>
+    </head>
+    <body>
+        <canvas id="canvas" height="500" width="500"></canvas>
+    </body>
+    <script id="vertex_shader" type="x-shader/x-vertex">
+        attribute vec4 vPosition;
+        uniform vec4 uOffset;
+        uniform vec4 uColor;
+        void main(){
+            gl_Position = vPosition + uOffset;
+        }
+    </script>
+    <script id="fragment_shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform highp vec4 uColor;
+        void main(){
+            gl_FragColor = uColor;
+        }
+    </script>
+
+    <script>
+        let gl, points;
+        let canvas;
+        window.onload = () => {
+            canvas = document.getElementById("canvas");
+            gl = WebGLUtils.setupWebGL(canvas);
+            if (!gl) {
+                alert("WebGL not available");
+                return;
+            }
+            let vertex_leaf = [vec2(-0.5, 0), vec2(0.5, 0), vec2(0, 0.5)];
+            let vertex_stemp = [vec2(-0.25, 0), vec2(0.25, 0), vec2(-0.25, -1), vec2(0.25, -1)];
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(1.0, 1.0, 1.0, 1.0);
+            let program = initShaders(gl, "vertex_shader", "fragment_shader");
+            gl.useProgram(program);
+
+            //#region define varables
+            let bufferId = gl.createBuffer();
+            let uColor = gl.getUniformLocation(program, "uColor");
+            let uOffset = gl.getUniformLocation(program, "uOffset");
+            let vPosition = gl.getAttribLocation(program, "vPosition");
+            //#endregion
+
+            //vertex
+            {
+                gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
+                gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(vPosition);
+            }
+
+            //#region Vertex
+
+            // vertex points
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(vertex_leaf), gl.STATIC_DRAW);
+            //color uniform
+            gl.uniform4fv(uColor, [0, 1, 0, 1]);
+
+            //move and draw same
+            {
+                gl.uniform4fv(uOffset, [-0.5, -0.5, 0, 0]);
+                render();
+                // gl.uniform4fv(uOffset, [0.5, -0.5, 0, 0]);
+                // gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+                gl.uniform4fv(uOffset, [-0.5, 0, 0, 0]);
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+                // gl.uniform4fv(uOffset, [0.5, 0, 0, 0]);
+                // gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+                gl.uniform4fv(uOffset, [-0.5, 0.5, 0, 0]);
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+                // gl.uniform4fv(uOffset, [0.5, 0.5, 0, 0]);
+                // gl.drawArrays(gl.TRIANGLES, 0, 6);
+            }
+            //endregion
+
+            //region draw stamp
+            gl.bindBuffer(gl.ARRAY_BUFFER, bufferId);
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(vertex_stemp), gl.STATIC_DRAW);
+            gl.uniform4fv(uColor, [1, 0.5, 0, 1]);
+            gl.uniform4fv(uOffset, [-0.5, -0.5, 0, 0]);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            // gl.uniform4fv(uOffset, [0.5, -0.5, 0, 0]);
+            // gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            //endregion
+        };
+        function render() {
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+    </script>
+</html>

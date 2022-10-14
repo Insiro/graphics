@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="../Common/InitShaders.js"></script>
+        <script src="../Common/webgl-utils.js"></script>
+        <script src="../Common/MV.js"></script>
+    </head>
+    <body>
+        <canvas id="canvas" height="500" width="500"></canvas>
+    </body>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        precision mediump float;
+        attribute vec4 vPosition;
+        uniform vec4 uColor;
+        void main(){
+            gl_Position =vPosition;
+            gl_Position.x= 1.0-(gl_Position.x/9.0);
+            gl_Position.y= 1.0-(gl_Position.y/9.0);
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        uniform vec4 uColor;
+        void main(){
+            gl_FragColor = uColor / 10.0;
+        }
+    </script>
+    <script>
+        window.onload = () => {
+            let canvas = document.getElementById("canvas");
+            let gl = WebGLUtils.setupWebGL(canvas);
+            if (gl) gl_work(canvas, gl);
+            else alert("gl not initailzied");
+        };
+        function setRectangle(gl, x, y, width, height) {
+            let x1 = x;
+            let x2 = x + width;
+            let y1 = y;
+            let y2 = y + height;
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]), gl.STATIC_DRAW);
+        }
+
+        function gl_work(canvas, gl) {
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            //  Load shaders and initialize attribute buffers
+
+            let program = initShaders(gl, "vertex-shader", "fragment-shader");
+            gl.useProgram(program);
+
+            let vertexBufferId = gl.createBuffer();
+            // let colorBufferId = gl.createBuffer();
+            let vPosition = gl.getAttribLocation(program, "vPosition");
+            let uColor = gl.getUniformLocation(program, "uColor");
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferId);
+            gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+            // gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
+            // gl.enableVertexAttribArray(vColor);
+
+            gl.enableVertexAttribArray(vPosition);
+
+            for (let i = 0; i < 50; i++) {
+                setRectangle(gl, parseInt(Math.random() * 10), parseInt(Math.random() * 10), parseInt(Math.random() * 10), parseInt(Math.random() * 10));
+                let color = [vec4(0, parseInt(Math.random() * 10), parseInt(Math.random() * 10), parseInt(Math.random() * 10), 1)];
+
+                //color
+                gl.uniform4fv(uColor, flatten(color));
+
+                gl.drawArrays(gl.TRIANGLES, 0, 6);
+            }
+
+            // Associate vertex data buffer with shader variables
+        }
+    </script>
+</html>

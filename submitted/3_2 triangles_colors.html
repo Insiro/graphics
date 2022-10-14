@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="../Common/InitShaders.js"></script>
+        <script src="../Common/webgl-utils.js"></script>
+        <script src="../Common/MV.js"></script>
+    </head>
+    <body>
+        <canvas id="canvas" height="500" width="500"></canvas>
+    </body>
+    <script id="vertex_shader" type="x-shader/x-vertex">
+        attribute vec4 vPosition;
+        attribute vec4 vColor;
+        varying vec4 v_color;
+        void main(){
+            gl_Position = vPosition;
+            v_color = vColor;
+        }
+    </script>
+    <script id="fragment_shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec4 v_color;
+        void main(){
+        gl_FragColor = v_color;}
+    </script>
+    <script>
+        window.onload = () => {
+            let canvas = document.getElementById("canvas");
+            let gl = WebGLUtils.setupWebGL(canvas);
+            if (gl) gl_work(canvas, gl);
+            else alert("gl not initailzied");
+        };
+
+        function gl_work(canvas, gl) {
+            let vertices = [vec2(0, 0.5), vec2(-0.5, -0.5), vec2(0.5, -0.5)];
+            let colors = [vec4(1.0, 0.0, 0.0, 1.0), vec4(0.0, 1.0, 0.0, 1.0), vec4(0.0, 0.0, 1.0, 1.0)];
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.clearColor(0, 0, 0, 1);
+            let program = initShaders(gl, "vertex_shader", "fragment_shader");
+            gl.useProgram(program);
+
+            let vertexBufferId = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferId);
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
+            let vPosition = gl.getAttribLocation(program, "vPosition");
+            gl.vertexAttribPointer(vPosition, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(vPosition);
+
+            let vertexColorBufferId = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBufferId);
+            gl.bufferData(gl.ARRAY_BUFFER, flatten(colors), gl.STATIC_DRAW);
+            let vColor = gl.getAttribLocation(program, "vColor");
+            gl.vertexAttribPointer(vColor, 4, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(vColor);
+
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+        }
+    </script>
+</html>
