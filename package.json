@@ -1,0 +1,15 @@
+{
+  "name": "graphics",
+  "version": "1.0.0",
+  "main": "./server.js",
+  "scripts": {
+    "start": "node ."
+  },
+  "type": "module",
+  "repository": "https://github.com/Insiro/graphics.git",
+  "author": "Insiro <leeon@insiro.me>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
